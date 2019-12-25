@@ -14,6 +14,72 @@
  *   does not exist a winning strategy for O.
  */
 
+// Convert from representation in base 2 to the same rep. in base 3
+U32 convertBase2to3(U16 base2, U8 num_bits){
+
+	U32 base3 = 0;
+
+	// Read off each bit
+	for (U8 bit = 0; bit < num_bits; bit++)
+
+		if (getBitU16(base2, bit))
+			base3 += intExp(3, bit);
+
+	return base3;
+}
+
+// Injective hash function from x_board and o_board
+U32 hashMap(ttt_game *game, U16 x_board, U16 o_board){
+
+	return convertBase2to3(x_board, game->num_squares) 
+		+ 2 * convertBase2to3(o_board, game->num_squares);
+}
+
+// Detemine the largest hash key (+1) that can be had
+U32 largestHashKey(ttt_game *game){
+
+	// Middle bit
+	U8 threshhold_bit = (game->num_squares - 1) / 2 + 1;
+
+	// Build x_board
+	U16 x_board = 0x0000;
+	for (U8 bit = 0; bit < threshhold_bit; bit++)
+		setBitU16(&x_board, bit, 1);
+
+	// Build o_board
+	U16 o_board = 0x0000;
+	for (U8 bit = threshhold_bit; bit < game->num_squares; bit++)
+		setBitU16(&o_board, bit, 1);
+
+	return hashMap(game, x_board, o_board) + 1;
+}
+
+// Plot hash map combinations
+void printHashMap(ttt_game *game){
+
+	// Open the file
+	char* filename = "hashmap.txt";
+	FILE* my_file = (FILE*)malloc(sizeof(FILE));
+	my_file = fopen(filename, "w+");
+	if (my_file == NULL){
+		printf("File %s could not be opened.\n", filename);
+		return;
+	}
+
+	// Occupy the file
+	U32 hash;
+	U32 max_board = intExp(2, game->num_squares);
+	
+	for (U16 o_board = 0; o_board < max_board; o_board++){
+		for (U16 x_board = 0; x_board < max_board; x_board++){
+			hash = hashMap(game, x_board, o_board);
+			fprintf(my_file, "%u, %u, %u\n", x_board, o_board, hash);
+		}
+	}
+	fclose(my_file);
+	return;
+}
+
 // Set up default attributes for node
 void initNode(Node **node, ttt_game *game){
 
@@ -40,53 +106,40 @@ void initNode(Node **node, ttt_game *game){
 }
 
 // Allocate memory for transposition table
-void initTranspositionTable(Node ****transposition_table, ttt_game *game){
+void initTranspositionTable(Node ***transposition_table, ttt_game *game){
 
-	// Number of unique x_board configurations: 2^{N^2}
-	U64 num_states = intExp(2, game->num_squares);
+	// Maximal number of possible hash keys
+	U32 max_key = largestHashKey(game);
 
-	(*transposition_table) = (Node***)malloc(num_states * sizeof(Node**));
+	(*transposition_table) = (Node**)malloc(max_key * sizeof(Node*));
 
 	if ((*transposition_table) == NULL){
-		printf("Could not allocate memory for transposition outer-table.\n");
+		printf("Could not allocate memory for transposition table.\n");
 		return;
 	}
 
-	for (U64 i = 0; i < num_states; i++){
-		(*transposition_table)[i] = (Node**)malloc(num_states * sizeof(Node*));
-
-		if ((*transposition_table)[i] == NULL){
-			printf("Could not allocate memory for transposition inner-table.\n");
-			return;
-		}
-
-		for (U64 j = 0; j < num_states; j++)
-			(*transposition_table)[i][j] = NULL;
-	}
+	// Set all defaults to NULL
+	for (U32 key = 0; key < max_key; key++)
+		(*transposition_table)[key] = NULL;
+	
 	return;
 }
 
 // Save the environment
-void freeTranspositionTable(Node ****transposition_table, ttt_game *game){
+void freeTranspositionTable(Node ***transposition_table, ttt_game *game){
 
-	// Number of unique x_board configurations: 2^{N^2}
-	U64 num_states = intExp(2, game->num_squares);
+	// Maximal number of possible hash keys
+	U32 max_key = largestHashKey(game);
 
-	for (U64 i = 0; i < num_states; i++){
+	// Free all nodes from the table
+	for (U32 key = 0; key < max_key; key++)
 
-		// Free all nodes from the table
-		for (U64 j = 0; j < num_states; j++){
-
-			if ((*transposition_table)[i][j] != NULL){
-
-				free((*transposition_table)[i][j]->children);
-				free((*transposition_table)[i][j]);
-			}
+		if ((*transposition_table)[key] != NULL){
+			free((*transposition_table)[key]->children);
+			free((*transposition_table)[key]);
 		}
 
-		// Free the table too
-		free((*transposition_table)[i]);
-	}
+	// Free the table too
 	free(*transposition_table);
 	return;
 }
@@ -119,10 +172,12 @@ void countLeafNodes(ttt_board *board, ttt_game *game, U64 *num_leaves){
 }
 
 // Wire the game tree and transposition table
-Node* constructGameTree(ttt_board *board, ttt_game *game, Node ***transposition_table, S8 move_result){
+Node* constructGameTree(ttt_board *board, ttt_game *game, Node **transposition_table, 
+						S8 move_result){
 
 	// Isolate current node
-	Node** current_node = &(transposition_table[board->x_board][board->o_board]);
+	U32 hash_key = hashMap(game, board->x_board, board->o_board);
+	Node** current_node = &(transposition_table[hash_key]);
 
 	// Prune search if transposition
 	if (*current_node != NULL)
@@ -149,6 +204,75 @@ Node* constructGameTree(ttt_board *board, ttt_game *game, Node ***transposition_
 
 		// Get the children
 		(*current_node)->children[bit] = constructGameTree(board, game, transposition_table, move_result);
+
+		// Rollback
+		undoMove(board, bit);
+	}
+	return *current_node;
+}
+
+// tqdm version of tree construction
+void gameTreeProgress(ttt_board *board, ttt_game *game, Node **transposition_table){
+
+	// Leaves
+	U32 num_leaves = 0;
+	U32 max_leaves;
+
+	// Sorry lol
+	if (DIMENSION == 4)
+		max_leaves = 12870;	// (16 choose 8)
+	else if (DIMENSION == 3)
+		max_leaves = 126;	// (9 choose 4)
+	else if (DIMENSION == 2)
+		max_leaves = 6;	// (4 choose 2)
+
+	// Construct tree
+	constructGameTreeProg(board, game, transposition_table, 
+						CONTINUE, &num_leaves, max_leaves);
+	return;
+}
+
+// Print the progress along game tree construction
+Node* constructGameTreeProg(ttt_board *board, ttt_game *game, Node **transposition_table, 
+						S8 move_result, U32 *num_leaves, U32 max_leaves){
+
+	// Isolate current node
+	U32 hash_key = hashMap(game, board->x_board, board->o_board);
+	Node** current_node = &(transposition_table[hash_key]);
+
+	// Prune search if transposition
+	if (*current_node != NULL)
+		return *current_node;
+
+	// Print progress
+	if (board->ply = game->max_ply){
+		(*num_leaves)++;
+		U8 progression = (*num_leaves) * 100 / max_leaves;
+		printf("%3.hhu %%\n", progression);
+	}
+
+	// Generate node if new territory
+	initNode(current_node, game);
+
+	// Terminate if leaf node
+	if (move_result != 0){
+		(*current_node)->value = move_result;
+		return *current_node;
+	}
+
+	// Span over all moves
+	for (U8 bit = 0; bit < game->num_squares; bit++){
+
+		// Perform move
+		move_result = makeMoveValidate(board, game, bit);
+
+		// Ensure it is legal
+		if (move_result == ERROR)
+			continue;
+
+		// Get the children
+		(*current_node)->children[bit] = constructGameTreeProg(board, game, 
+				transposition_table, move_result, num_leaves, max_leaves);
 
 		// Rollback
 		undoMove(board, bit);
@@ -249,11 +373,11 @@ S8 min(S8 a, S8 b){
 }
 
 // Integer exponentiation
-U64 intExp(U8 base, U8 exponent){
+U32 intExp(U8 base, U8 exponent){
 
-	U64 result = (U64)base;
+	U32 result = 1;
 
-	for (U8 i = 1; i < exponent; i++)
+	for (U8 i = 0; i < exponent; i++)
 		result *= base;
 
 	return result;

@@ -17,14 +17,17 @@ int main(){
 	initGame(&game);
 
 	// Setup trans_table
-	Node ***transposition_table;
+	Node **transposition_table;
 	initTranspositionTable(&transposition_table, game);
 
 	// Get that tree (clock it)
 	S64 time = clock();
-	Node* game_tree_head = constructGameTree(board, game, transposition_table, CONTINUE);
-	time = clock() - time; 
+	gameTreeProgress(board, game, transposition_table);
+	//Node *game_tree_node = constructGameTree(board, game, transposition_table, CONTINUE);
+	time = clock() - time;
 	double seconds = ((double)time) / CLOCKS_PER_SEC;
+
+	printf("IT DOES NOT MAKE SENSE TO HAVE >100%% PROGRESS.\n");
 
 	// Print results
 	printf("Dimension: \t%dx%d\n", DIMENSION, DIMENSION);
@@ -47,23 +50,4 @@ int main(){
  *	- Include symmetry reductions
  *
  *   ----------------------------------------------------------------
- */
-
-/*
- *	Manuscript sections: --------------------------------------------
- *
- *	- Games of perfect information
- *	- ``Winning Strategies'' and associated theorems
- *
- *	- Bit boards
- *	- Faster system for checking tic tac toes (more than just the inherent speedup)
- *	- Approx 10x speedup
- *
- *	- Transposition tables & game tree
- *	- Bit boards make for SUPER fast table keys
- *	- Transposition results in approx 10x speedup
- *
- *	- Symmetry reductions
- *
- *	-----------------------------------------------------------------
  */
