@@ -22,16 +22,39 @@ int main(){
 
 	// Get that tree (clock it)
 	S64 time = clock();
-	gameTreeProgress(board, game, transposition_table);
-	//Node *game_tree_node = constructGameTree(board, game, transposition_table, CONTINUE);
+	Node *game_tree_head = gameTreeProgress(board, game, transposition_table, 1, 1);
 	time = clock() - time;
 	double seconds = ((double)time) / CLOCKS_PER_SEC;
 
-	printf("IT DOES NOT MAKE SENSE TO HAVE >100%% PROGRESS.\n");
-
 	// Print results
+	printf("/-----------------------\\\n");
 	printf("Dimension: \t%dx%d\n", DIMENSION, DIMENSION);
 	printf("Run time: \t%.5f s\n", seconds);
+	printf("\\-----------------------/\n");
+
+	// Begin debugging chamber!
+	Node* node = game_tree_head;
+	U8 bit;
+
+	for(;;){
+
+		// Print information
+		printBoard(board);
+		printf("Value: %hhi\n", node->value);
+
+		// Retrieve input
+		bit = inputU8("Bit to play");
+
+		// Check tree if route is possible
+		if (node->children[bit] == NULL){
+			printf("Bit %hhu not valid.\n", bit);
+			continue;
+		}
+
+		// Progress game
+		makeMove(board, game, bit);
+		node = node->children[bit];
+	}
 
 	// We care about the environment
 	freeTranspositionTable(&transposition_table, game);
@@ -44,9 +67,12 @@ int main(){
 /*   
  *   TODO LIST: -----------------------------------------------------
  *
+ *	- Add toggle for progress bar
  *	- Create function to show connectivity between trans_table and game_tree
- *	- Make the constructGameTree function work with node values
- *	- Delete fullMinimax
+ *	- Include optimal play pruning
+ *	- Make function to make computer play perfectly
+ *		- Random move selection?
+ *		- Optimize winning chances
  *	- Include symmetry reductions
  *
  *   ----------------------------------------------------------------
