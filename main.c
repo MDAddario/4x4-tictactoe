@@ -5,6 +5,9 @@
 #include "tictactoe.h"
 #include "tree_traversal.h"
 
+#define TRUE  1
+#define FALSE 0
+
 // The main attraction
 int main(){
 
@@ -22,7 +25,7 @@ int main(){
 
 	// Get that tree (clock it)
 	S64 time = clock();
-	Node *game_tree_head = gameTreeProgress(board, game, transposition_table, 1, 1);
+	Node *game_tree_head = constructGameTree(board, game, transposition_table, FALSE, FALSE, TRUE);
 	time = clock() - time;
 	double seconds = ((double)time) / CLOCKS_PER_SEC;
 
@@ -32,29 +35,7 @@ int main(){
 	printf("Run time: \t%.5f s\n", seconds);
 	printf("\\-----------------------/\n");
 
-	// Begin debugging chamber!
-	Node* node = game_tree_head;
-	U8 bit;
-
-	for(;;){
-
-		// Print information
-		printBoard(board);
-		printf("Value: %hhi\n", node->value);
-
-		// Retrieve input
-		bit = inputU8("Bit to play");
-
-		// Check tree if route is possible
-		if (node->children[bit] == NULL){
-			printf("Bit %hhu not valid.\n", bit);
-			continue;
-		}
-
-		// Progress game
-		makeMove(board, game, bit);
-		node = node->children[bit];
-	}
+	practiceGame(board, game, game_tree_head);
 
 	// We care about the environment
 	freeTranspositionTable(&transposition_table, game);

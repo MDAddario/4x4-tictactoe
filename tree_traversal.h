@@ -20,9 +20,10 @@ void initTranspositionTable(Node***, ttt_game*);
 void freeTranspositionTable(Node***, ttt_game*);
 
 // Tree traversal funcitons
-void  countLeafNodes         (ttt_board*, ttt_game*, U64*);
-Node* gameTreeProgress       (ttt_board*, ttt_game*, Node**, U8, U8);
-Node* constructGameTreeProg  (ttt_board*, ttt_game*, Node**, S8, U32*, U32, U8, U8);
+void  countLeafNodes    (ttt_board*, ttt_game*, U64*);
+Node* constructGameTree (ttt_board*, ttt_game*, Node**, U8, U8, U8);
+Node* backgroundGameTree(ttt_board*, ttt_game*, Node**, U8, U8, U8, S8, U32*, U32);
+void  practiceGame      (ttt_board*, ttt_game*, Node*);
 
 // Helper functions
 S8  max    (S8, S8);

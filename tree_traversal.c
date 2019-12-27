@@ -171,9 +171,9 @@ void countLeafNodes(ttt_board *board, ttt_game *game, U64 *num_leaves){
 	return;
 }
 
-// Wrapper function for tree construction
-Node* gameTreeProgress(ttt_board *board, ttt_game *game, Node **transposition_table,
-						U8 is_x_optimal, U8 is_o_optimal){
+// User call to wire game tree and transposition table
+Node* constructGameTree(ttt_board *board, ttt_game *game, Node **transposition_table,
+						U8 is_x_optimal, U8 is_o_optimal, U8 is_print_progress){
 
 	// Leaves
 	U32 num_leaves = 0;
@@ -181,22 +181,22 @@ Node* gameTreeProgress(ttt_board *board, ttt_game *game, Node **transposition_ta
 
 	// Sorry lol
 	if (DIMENSION == 4)
-		max_leaves = 12870;	// (16 choose 8)
+		max_leaves = 12870;		// (16 choose 8)
 	else if (DIMENSION == 3)
-		max_leaves = 126;	// (9 choose 4)
+		max_leaves = 126;		// (9 choose 4)
 	else if (DIMENSION == 2)
-		max_leaves = 6;	// (4 choose 2)
+		max_leaves = 6;			// (4 choose 2)
 
 	// Construct tree
-	return constructGameTreeProg(board, game, transposition_table, 
-							CONTINUE, &num_leaves, max_leaves,
-							is_x_optimal, is_o_optimal);
+	return backgroundGameTree(board, game, transposition_table, 
+							is_x_optimal, is_o_optimal, is_print_progress,
+							CONTINUE, &num_leaves, max_leaves);
 }
 
-// Wire the game tree and transposition table
-Node* constructGameTreeProg(ttt_board *board, ttt_game *game, Node **transposition_table, 
-							S8 move_result, U32 *num_leaves, U32 max_leaves,
-							U8 is_x_optimal, U8 is_o_optimal){
+// Backend call to wire game tree and transposition table
+Node* backgroundGameTree(ttt_board *board, ttt_game *game, Node **transposition_table, 
+						U8 is_x_optimal, U8 is_o_optimal, U8 is_print_progress,
+						S8 move_result, U32 *num_leaves, U32 max_leaves){
 
 	// Isolate current node
 	U32 hash_key = hashMap(game, board->x_board, board->o_board);
@@ -207,17 +207,18 @@ Node* constructGameTreeProg(ttt_board *board, ttt_game *game, Node **transpositi
 		return *current_node;
 
 	// Print progress
-	if (board->ply == game->max_ply){
-		(*num_leaves)++;
-		U8 progression = (*num_leaves) * 100 / max_leaves;
-		printf("%3.hhu %%\n", progression);
-	}
+	if (is_print_progress)
+		if (board->ply == game->max_ply){
+			(*num_leaves)++;
+			U8 progression = (*num_leaves) * 100 / max_leaves;
+			printf("%3.hhu %%\n", progression);
+		}
 
 	// Generate node if new territory
 	initNode(current_node, game);
 
 	// Terminate if leaf node
-	if (move_result != 0){
+	if (move_result != CONTINUE){
 		(*current_node)->value = move_result;
 		return *current_node;
 	}
@@ -239,9 +240,9 @@ Node* constructGameTreeProg(ttt_board *board, ttt_game *game, Node **transpositi
 			continue;
 
 		// Get the children
-		(*current_node)->children[bit] = constructGameTreeProg(board, game, 
-				transposition_table, move_result, num_leaves, max_leaves,
-				is_x_optimal, is_o_optimal);
+		(*current_node)->children[bit] = backgroundGameTree(board, game, 
+				transposition_table, is_x_optimal, is_o_optimal, is_print_progress,
+				move_result, num_leaves, max_leaves);
 
 		// Rollback
 		undoMove(board, bit);
@@ -271,6 +272,38 @@ Node* constructGameTreeProg(ttt_board *board, ttt_game *game, Node **transpositi
 		}
 	}
 	return *current_node;
+}
+
+// Enter the debugging chamber
+void practiceGame(ttt_board *board, ttt_game *game, Node *node){
+
+	// Quick check
+	if (node == NULL){
+		printf("Game tree head invalid.\n");
+		return;
+	}
+
+	for(U8 bit;;){
+
+		// Print information
+		printBoard(board);
+		printf("Value: %hhi\n", node->value);
+
+		// Retrieve input
+		bit = inputU8("Bit to play");
+
+		// Check tree if route is possible
+		if (node->children[bit] == NULL){
+			printf("Bit %hhu not valid.\n", bit);
+			continue;
+		}
+
+		// Progress game
+		makeMove(board, game, bit);
+		node = node->children[bit];
+	}
+	// Not that you could ever reach this
+	return;
 }
 
 // Determine maximum

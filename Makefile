@@ -2,7 +2,7 @@ SRCS = bit_ops.c tictactoe.c tree_traversal.c
 OBJS = ${SRCS:.c=.o}
 HDS = ${SRCS:.c=.h}
 
-DIMENSION = 3
+DIMENSION = 4
 DEFINE = -DDIMENSION=${DIMENSION}
 
 all: main
