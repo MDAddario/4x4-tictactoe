@@ -25,7 +25,7 @@ int main(){
 
 	// Get that tree (clock it)
 	S64 time = clock();
-	Node *game_tree_head = constructGameTree(board, game, transposition_table, FALSE, FALSE, TRUE);
+	Node *game_tree_head = constructGameTree(board, game, transposition_table, TRUE, TRUE, TRUE);
 	time = clock() - time;
 	double seconds = ((double)time) / CLOCKS_PER_SEC;
 
@@ -35,6 +35,7 @@ int main(){
 	printf("Run time: \t%.5f s\n", seconds);
 	printf("\\-----------------------/\n");
 
+	// Debug!
 	practiceGame(board, game, game_tree_head);
 
 	// We care about the environment
@@ -48,9 +49,7 @@ int main(){
 /*   
  *   TODO LIST: -----------------------------------------------------
  *
- *	- Add toggle for progress bar
  *	- Create function to show connectivity between trans_table and game_tree
- *	- Include optimal play pruning
  *	- Make function to make computer play perfectly
  *		- Random move selection?
  *		- Optimize winning chances

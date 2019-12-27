@@ -336,13 +336,14 @@ U32 intExp(U8 base, U8 exponent){
 // Retrieve number from char stdio
 U8 inputU8(U8 *prompt){
 
-	U8 input, dummy;
+	U8 input[3];
+	U8 dummy;
 
 	// Request input
 	printf("%s: ", prompt);
-	scanf("%c", &input);
+	scanf("%s", input);
 
 	// Clear buffer
 	while ((dummy = getchar()) != '\n' && dummy != EOF){}
-	return input - 48;
+	return atoi(input);
 }
