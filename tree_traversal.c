@@ -292,7 +292,7 @@ void practiceGame(ttt_board *board, ttt_game *game, Node *node){
 		// Retrieve input
 		bit = inputU8("Bit to play");
 
-		// Check tree if route is possible
+		// Check tree if move is legal
 		if (node->children[bit] == NULL){
 			printf("Bit %hhu not valid.\n", bit);
 			continue;
