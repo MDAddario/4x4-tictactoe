@@ -14,6 +14,7 @@ void printHashMap   (ttt_game*);
 
 // Node methods
 void initNode(Node**, ttt_game*);
+void freeNode(Node**);
 
 // Transposition table methods
 void initTranspositionTable(Node***, ttt_game*);
@@ -30,3 +31,4 @@ S8  max    (S8, S8);
 S8  min    (S8, S8);
 U32 intExp (U8, U8);
 U8  inputU8(U8*);
+

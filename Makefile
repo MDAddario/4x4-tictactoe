@@ -16,3 +16,4 @@ main: main.c ${OBJS}
 clean:
 	rm -f main ${OBJS}
 	clear
+

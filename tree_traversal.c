@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include "bit_ops.h"
 #include "tictactoe.h"
 #include "tree_traversal.h"
@@ -105,6 +106,19 @@ void initNode(Node **node, ttt_game *game){
 	return;
 }
 
+// Save the environment
+void freeNode(Node **node){
+
+	// Free the children
+	free((*node)->children);
+
+	// Free the node itself
+	free(*node);
+
+	// Call it a day
+	return;
+}
+
 // Allocate memory for transposition table
 void initTranspositionTable(Node ***transposition_table, ttt_game *game){
 
@@ -133,11 +147,8 @@ void freeTranspositionTable(Node ***transposition_table, ttt_game *game){
 
 	// Free all nodes from the table
 	for (U32 key = 0; key <= max_key; key++)
-
-		if ((*transposition_table)[key] != NULL){
-			free((*transposition_table)[key]->children);
-			free((*transposition_table)[key]);
-		}
+		if ((*transposition_table)[key] != NULL)
+			freeNode(&((*transposition_table)[key]));
 
 	// Free the table too
 	free(*transposition_table);
@@ -187,10 +198,23 @@ Node* constructGameTree(ttt_board *board, ttt_game *game, Node **transposition_t
 	else if (DIMENSION == 2)
 		max_leaves = 6;			// (4 choose 2)
 
-	// Construct tree
-	return backgroundGameTree(board, game, transposition_table, 
-							is_x_optimal, is_o_optimal, is_print_progress,
-							CONTINUE, &num_leaves, max_leaves);
+	// Construct tree and time how long it takes
+	S64 time = clock();
+	Node *game_tree_head = backgroundGameTree(board, game, transposition_table, 
+					is_x_optimal, is_o_optimal, is_print_progress,
+					CONTINUE, &num_leaves, max_leaves);
+	time = clock() - time;
+	double seconds = ((double)time) / CLOCKS_PER_SEC;
+
+	// Print run time
+	if (is_print_progress){
+		printf("/-----------------------\\\n");
+		printf("Dimension: \t%dx%d\n", DIMENSION, DIMENSION);
+		printf("Run time: \t%.5f s\n", seconds);
+		printf("\\-----------------------/\n");
+	}
+
+	return game_tree_head;
 }
 
 // Backend call to wire game tree and transposition table
@@ -347,3 +371,4 @@ U8 inputU8(U8 *prompt){
 	while ((dummy = getchar()) != '\n' && dummy != EOF){}
 	return atoi(input);
 }
+

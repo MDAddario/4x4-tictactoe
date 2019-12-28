@@ -1,6 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
 #include "bit_ops.h"
 #include "tictactoe.h"
 #include "tree_traversal.h"
@@ -23,18 +21,10 @@ int main(){
 	Node **transposition_table;
 	initTranspositionTable(&transposition_table, game);
 
-	// Get that tree (clock it)
-	S64 time = clock();
+	// Get that tree
 	Node *game_tree_head = constructGameTree(board, game, transposition_table, FALSE, FALSE, TRUE);
-	time = clock() - time;
-	double seconds = ((double)time) / CLOCKS_PER_SEC;
 
-	// Print results
-	printf("/-----------------------\\\n");
-	printf("Dimension: \t%dx%d\n", DIMENSION, DIMENSION);
-	printf("Run time: \t%.5f s\n", seconds);
-	printf("\\-----------------------/\n");
-
+	/* CURRENTLY HAVE BUG WHERE CPU_MOVE=8 TO HUMAN_MOVE=4 CRASHES */
 
 	// Play against a perfect X_player
 	Node *node = game_tree_head;
@@ -96,16 +86,16 @@ int main(){
 			bit = best_bit;
 
 			// Avoid segfaults
-			if (bit == -1)
-				break;
+			if (bit == -1){
+				printf("We have a problem\n");
+				return -1;
+			}
 		}
 
 		// Progress game
 		makeMove(board, game, bit);
 		node = node->children[bit];
 	}
-
-
 
 	// We care about the environment
 	freeTranspositionTable(&transposition_table, game);
@@ -126,3 +116,4 @@ int main(){
  *
  *   ----------------------------------------------------------------
  */
+
